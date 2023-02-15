@@ -1,4 +1,6 @@
 const PUBLIC_URL = process.env.PUBLIC_URL;
+const MEDIA_PATH = `${__dirname}/../storage`;
+const fs = require('fs');
 const { matchedData } = require("express-validator");
 const { storageModel } = require("../models");
 const { handleError } = require("../utils/handleError");
@@ -6,17 +8,17 @@ const { handleError } = require("../utils/handleError");
 const createItem = async (req, res) => {
   const { body, file } = req
   const fileData = {
-    name: file.filename,
+    filename: file.filename,
     url: `${PUBLIC_URL}/${file.filename}`
   }
   console.log(file)
   const data = await storageModel.create(fileData);
-  res.send({ menssage: "POST_COMPLETED", fileData })
+  res.send({ menssage: "POST_COMPLETED", data })
 }
 const getItems = async (req, res) => {
   try {
     const data = await storageModel.find({});
-    res.send(data)
+    res.send(data);
   } catch (error) {
     handleError(res, "ERROR_GET_ITEMS")
   }
@@ -34,10 +36,18 @@ const getItem = async (req, res) => {
 const deleteItem = async (req, res) => {
   try {
     const id = req.params.id;
-    const data = await storageModel.delete(id);
+    const datafile = await storageModel.findById(id);
+    await storageModel.delete({ _id: id })
+    const { filename } = datafile;
+    const filePath = `${MEDIA_PATH}/${filename}`;
+    fs.unlinkSync(filePath)
+    const data = {
+      filePath,
+      deleted: 1
+    }
     res.send(data)
   } catch (error) {
-    handleError(res, "ERROR_GET_ITEMS")
+    handleError(res, "ERROR_DELETE_ITEM")
   }
 }
 
